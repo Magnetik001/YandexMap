@@ -3,7 +3,7 @@ import sys
 import requests
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QVBoxLayout, QWidget
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtCore import Qt
 
 WINDOW_WIDTH = 450
 WINDOW_HEIGHT = 350
@@ -52,6 +52,31 @@ class YandexMap(QMainWindow):
         if e.key() == Qt.Key.Key_PageDown:
             self.zoom *= 2 if self.zoom < 1 else 1
             print(self.zoom)
+            self.get_response(self.coordinates, self.zoom)
+            self.image()
+
+        step = self.zoom * 0.5
+        lon = float(self.coordinates[0])
+        lat = float(self.coordinates[1])
+
+        if e.key() == Qt.Key.Key_W:
+            lat += step
+            self.coordinates = [str(lon), str(lat)]
+            self.get_response(self.coordinates, self.zoom)
+            self.image()
+        elif e.key() == Qt.Key.Key_S:
+            lat -= step
+            self.coordinates = [str(lon), str(lat)]
+            self.get_response(self.coordinates, self.zoom)
+            self.image()
+        elif e.key() == Qt.Key.Key_A:
+            lon -= step
+            self.coordinates = [str(lon), str(lat)]
+            self.get_response(self.coordinates, self.zoom)
+            self.image()
+        elif e.key() == Qt.Key.Key_D:
+            lon += step
+            self.coordinates = [str(lon), str(lat)]
             self.get_response(self.coordinates, self.zoom)
             self.image()
 
