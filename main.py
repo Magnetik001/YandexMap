@@ -115,8 +115,6 @@ class YandexMap(QMainWindow):
         return coordinates
 
 
-
-
 def main():
     window = YandexMap()
     window.show()
