@@ -1,69 +1,101 @@
 import os
 import sys
-from idlelib.rpc import response_queue
-
 import requests
-import arcade
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QVBoxLayout, QWidget
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import Qt, QEvent
 
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
+WINDOW_WIDTH = 450
+WINDOW_HEIGHT = 350
 WINDOW_TITLE = "MAP"
 MAP_FILE = "map.png"
 
 server_address_geocode = 'https://geocode-maps.yandex.ru/1.x/?'
 api_key_geocode = '8013b162-6b42-4997-9691-77b7074026e0'
 
-params_geocode = {
-    "apikey": api_key_geocode,
-    "geocode": input(),
-    "format": "json"
-}
+app = QApplication(sys.argv)
 
-response = requests.request("GET", server_address_geocode, params=params_geocode).json()
+class YandexMap(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(WINDOW_TITLE)
 
-coordinates = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["Point"]["pos"].split()
+        self.coordinates = self.get_coordinates()
+        self.zoom = 0.002
+        self.get_response(self.coordinates, self.zoom)
+
+        central_widget = QWidget(self)
+        self.setCentralWidget(central_widget)
+        self.layout = QVBoxLayout()
+        central_widget.setLayout(self.layout)
+
+        self.image_label = QLabel()
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+        self.image()
 
 
-server_address_static_map = 'https://static-maps.yandex.ru/v1?'
-api_key_static_map = '2ac33b20-348f-4429-86d1-1ab126c72677'
+    def image(self):
+        pixmap = QPixmap(MAP_FILE)
+        self.resize(pixmap.width(), pixmap.height())
+        self.image_label.setPixmap(pixmap)
 
-params_static_map = {
-    "apikey": api_key_static_map,
-    "ll": f"{coordinates[0]},{coordinates[1]}",
-    "spn": "0.002,0.002"
-}
+        self.layout.addWidget(self.image_label)
 
-response = requests.request("GET", server_address_static_map, params=params_static_map)
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key.Key_PageUp:
+            self.zoom /= 2 if self.zoom > 0.0005 else 1
+            print(self.zoom)
+            self.get_response(self.coordinates, self.zoom)
+            self.image()
+        if e.key() == Qt.Key.Key_PageDown:
+            self.zoom *= 2 if self.zoom < 1 else 1
+            print(self.zoom)
+            self.get_response(self.coordinates, self.zoom)
+            self.image()
 
+    def get_response(self, coordinates, zoom):
+        server_address_static_map = 'https://static-maps.yandex.ru/v1?  '
+        api_key_static_map = '2ac33b20-348f-4429-86d1-1ab126c72677'
 
-class GameView(arcade.Window):
-    def setup(self):
-        self.get_image()
+        params_static_map = {
+            "apikey": api_key_static_map,
+            "ll": f"{coordinates[0]},{coordinates[1]}",
+            "spn": f"{zoom},{zoom}",
+            "size": "400,300"
+        }
 
-    def on_draw(self):
-        self.clear()
+        response = requests.request("GET", server_address_static_map, params=params_static_map)
 
-        arcade.draw_texture_rect(
-            self.background,
-            arcade.LBWH(
-                (self.width - self.background.width) // 2,
-                (self.height - self.background.height) // 2,
-                self.background.width,
-                self.background.height
-            ),
-        )
-
-    def get_image(self):
         with open(MAP_FILE, "wb") as file:
             file.write(response.content)
 
-        self.background = arcade.load_texture(MAP_FILE)
+    def get_coordinates(self):
+        address, ok = QInputDialog.getText(None, "Ввод", "Введите адрес:")
+        if not ok:
+            sys.exit()
+
+        params_geocode = {
+            "apikey": api_key_geocode,
+            "geocode": address,
+            "format": "json"
+        }
+
+        response = requests.request("GET", server_address_geocode, params=params_geocode).json()
+
+        coordinates = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["Point"][
+            "pos"].split()
+
+        return coordinates
+
+
 
 
 def main():
-    gameview = GameView(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
-    gameview.setup()
-    arcade.run()
+    window = YandexMap()
+    window.show()
+    app.exec()
     os.remove(MAP_FILE)
 
 
