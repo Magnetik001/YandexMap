@@ -48,6 +48,7 @@ class YandexMap(QMainWindow):
         self.get_coordinates(address)
         self.zoom = 0.002
         self.theme = "light"
+        self.postal_code = False
         self.get_response()
 
         self.image()
@@ -107,6 +108,13 @@ class YandexMap(QMainWindow):
             self.get_response()
             self.image()
 
+        elif e.key() == Qt.Key.Key_E:
+            self.postal_code = not self.postal_code
+            if self.postal_code:
+                self.info_label.setText(f"{self.info2} {self.info1}")
+            else:
+                self.info_label.setText(f"{self.info1}")
+
     def get_response(self):
         server_address_static_map = 'https://static-maps.yandex.ru/v1?  '
         api_key_static_map = '2ac33b20-348f-4429-86d1-1ab126c72677'
@@ -132,19 +140,22 @@ class YandexMap(QMainWindow):
             "format": "json"
         }
 
-        response = requests.request("GET", server_address_geocode, params=params_geocode).json()
+        response = requests.request("GET", server_address_geocode, params=params_geocode)
+        response = response.json()
 
         self.coordinates = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["Point"][
             "pos"].split()
-        self.info = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["name"]
+        self.info1 = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["name"]
+        self.info2 = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["metaDataProperty"]["GeocoderMetaData"]["Address"]["postal_code"]
         self.pt = f"{self.coordinates[0]},{self.coordinates[1]},pm2dgl"
 
-        self.info_label.setText(self.info)
+        self.info_label.setText(self.info1)
 
     def reset(self):
         self.pt = None
-        self.info = ""
-        self.info_label.setText(self.info)
+        self.info1 = ""
+        self.info2 = ""
+        self.info_label.setText(self.info1)
         self.get_response()
         self.image()
 
