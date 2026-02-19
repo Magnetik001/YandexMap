@@ -1,7 +1,7 @@
 import os
 import sys
 import requests
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QVBoxLayout, QWidget, QLineEdit
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 
@@ -20,10 +20,14 @@ class YandexMap(QMainWindow):
         super().__init__()
         self.setWindowTitle(WINDOW_TITLE)
 
-        self.coordinates = self.get_coordinates()
+        address, ok = QInputDialog.getText(None, "Ввод", "Введите адрес:")
+        if not ok:
+            sys.exit()
+
+        self.coordinates = self.get_coordinates(address)
         self.zoom = 0.002
         self.theme = "light"
-        self.get_response(self.coordinates, self.zoom)
+        self.get_response()
 
         central_widget = QWidget(self)
         self.setCentralWidget(central_widget)
@@ -33,6 +37,9 @@ class YandexMap(QMainWindow):
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+        self.find_label = QLineEdit()
+        self.layout.addWidget(self.find_label)
 
         self.image()
 
@@ -47,11 +54,11 @@ class YandexMap(QMainWindow):
     def keyPressEvent(self, e):
         if e.key() == Qt.Key.Key_PageUp:
             self.zoom /= 2 if self.zoom > 0.0005 else 1
-            self.get_response(self.coordinates, self.zoom)
+            self.get_response()
             self.image()
         if e.key() == Qt.Key.Key_PageDown:
             self.zoom *= 2 if self.zoom < 1 else 1
-            self.get_response(self.coordinates, self.zoom)
+            self.get_response()
             self.image()
 
         step = self.zoom * 0.5
@@ -62,44 +69,49 @@ class YandexMap(QMainWindow):
             if lat < 90:
                 lat += step
                 self.coordinates = [str(lon), str(lat)]
-                self.get_response(self.coordinates, self.zoom)
+                self.get_response()
                 self.image()
         elif e.key() == Qt.Key.Key_S:
             if lat > -90:
                 lat -= step
                 self.coordinates = [str(lon), str(lat)]
-                self.get_response(self.coordinates, self.zoom)
+                self.get_response()
                 self.image()
         elif e.key() == Qt.Key.Key_A:
             if lon > -180:
                 lon -= step
                 self.coordinates = [str(lon), str(lat)]
-                self.get_response(self.coordinates, self.zoom)
+                self.get_response()
                 self.image()
         elif e.key() == Qt.Key.Key_D:
             if lon < 180:
                 lon += step
                 self.coordinates = [str(lon), str(lat)]
-                self.get_response(self.coordinates, self.zoom)
+                self.get_response()
                 self.image()
         elif e.key() == Qt.Key.Key_Q:
             if self.theme == "light":
                 self.theme = "dark"
             else:
                 self.theme = "light"
-            self.get_response(self.coordinates, self.zoom)
+            self.get_response()
+            self.image()
+        elif e.key() == Qt.Key.Key_Return:
+            self.coordinates = self.get_coordinates(self.find_label.text())
+            self.get_response()
             self.image()
 
-    def get_response(self, coordinates, zoom):
+    def get_response(self):
         server_address_static_map = 'https://static-maps.yandex.ru/v1?  '
         api_key_static_map = '2ac33b20-348f-4429-86d1-1ab126c72677'
 
         params_static_map = {
             "apikey": api_key_static_map,
-            "ll": f"{coordinates[0]},{coordinates[1]}",
-            "spn": f"{zoom},{zoom}",
+            "ll": f"{self.coordinates[0]},{self.coordinates[1]}",
+            "spn": f"{self.zoom},{self.zoom}",
             "size": "400,300",
-            "theme": self.theme
+            "theme": self.theme,
+            "pt": self.pt
         }
 
         response = requests.request("GET", server_address_static_map, params=params_static_map)
@@ -107,11 +119,7 @@ class YandexMap(QMainWindow):
         with open(MAP_FILE, "wb") as file:
             file.write(response.content)
 
-    def get_coordinates(self):
-        address, ok = QInputDialog.getText(None, "Ввод", "Введите адрес:")
-        if not ok:
-            sys.exit()
-
+    def get_coordinates(self, address):
         params_geocode = {
             "apikey": api_key_geocode,
             "geocode": address,
@@ -122,6 +130,8 @@ class YandexMap(QMainWindow):
 
         coordinates = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["Point"][
             "pos"].split()
+
+        self.pt = f"{coordinates[0]},{coordinates[1]},pm2dgl"
 
         return coordinates
 
