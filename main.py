@@ -22,6 +22,7 @@ class YandexMap(QMainWindow):
 
         self.coordinates = self.get_coordinates()
         self.zoom = 0.002
+        self.theme = "light"
         self.get_response(self.coordinates, self.zoom)
 
         central_widget = QWidget(self)
@@ -46,12 +47,10 @@ class YandexMap(QMainWindow):
     def keyPressEvent(self, e):
         if e.key() == Qt.Key.Key_PageUp:
             self.zoom /= 2 if self.zoom > 0.0005 else 1
-            print(self.zoom)
             self.get_response(self.coordinates, self.zoom)
             self.image()
         if e.key() == Qt.Key.Key_PageDown:
             self.zoom *= 2 if self.zoom < 1 else 1
-            print(self.zoom)
             self.get_response(self.coordinates, self.zoom)
             self.image()
 
@@ -60,23 +59,34 @@ class YandexMap(QMainWindow):
         lat = float(self.coordinates[1])
 
         if e.key() == Qt.Key.Key_W:
-            lat += step
-            self.coordinates = [str(lon), str(lat)]
-            self.get_response(self.coordinates, self.zoom)
-            self.image()
+            if lat < 90:
+                lat += step
+                self.coordinates = [str(lon), str(lat)]
+                self.get_response(self.coordinates, self.zoom)
+                self.image()
         elif e.key() == Qt.Key.Key_S:
-            lat -= step
-            self.coordinates = [str(lon), str(lat)]
-            self.get_response(self.coordinates, self.zoom)
-            self.image()
+            if lat > -90:
+                lat -= step
+                self.coordinates = [str(lon), str(lat)]
+                self.get_response(self.coordinates, self.zoom)
+                self.image()
         elif e.key() == Qt.Key.Key_A:
-            lon -= step
-            self.coordinates = [str(lon), str(lat)]
-            self.get_response(self.coordinates, self.zoom)
-            self.image()
+            if lon > -180:
+                lon -= step
+                self.coordinates = [str(lon), str(lat)]
+                self.get_response(self.coordinates, self.zoom)
+                self.image()
         elif e.key() == Qt.Key.Key_D:
-            lon += step
-            self.coordinates = [str(lon), str(lat)]
+            if lon < 180:
+                lon += step
+                self.coordinates = [str(lon), str(lat)]
+                self.get_response(self.coordinates, self.zoom)
+                self.image()
+        elif e.key() == Qt.Key.Key_Q:
+            if self.theme == "light":
+                self.theme = "dark"
+            else:
+                self.theme = "light"
             self.get_response(self.coordinates, self.zoom)
             self.image()
 
@@ -88,7 +98,8 @@ class YandexMap(QMainWindow):
             "apikey": api_key_static_map,
             "ll": f"{coordinates[0]},{coordinates[1]}",
             "spn": f"{zoom},{zoom}",
-            "size": "400,300"
+            "size": "400,300",
+            "theme": self.theme
         }
 
         response = requests.request("GET", server_address_static_map, params=params_static_map)
