@@ -31,7 +31,9 @@ class YandexMap(QMainWindow):
         central_widget.setLayout(self.layout)
 
         self.find_line = QLineEdit()
+        self.find_line.textChanged.connect(self.find)
         self.layout.addWidget(self.find_line)
+
 
         self.info_label = QLabel()
         self.layout.addWidget(self.info_label)
@@ -103,11 +105,6 @@ class YandexMap(QMainWindow):
                 self.theme = "light"
             self.get_response()
             self.image()
-        elif e.key() == Qt.Key.Key_Return:
-            self.get_coordinates(self.find_line.text())
-            self.get_response()
-            self.image()
-
         elif e.key() == Qt.Key.Key_E:
             self.postal_code = not self.postal_code
             if self.postal_code:
@@ -140,14 +137,24 @@ class YandexMap(QMainWindow):
             "format": "json"
         }
 
-        response = requests.request("GET", server_address_geocode, params=params_geocode)
-        response = response.json()
+        response1 = requests.request("GET", server_address_geocode, params=params_geocode)
+        print(response1.url)
+        response = response1.json()
 
-        self.coordinates = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["Point"][
-            "pos"].split()
-        self.info1 = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["name"]
-        self.info2 = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["metaDataProperty"]["GeocoderMetaData"]["Address"]["postal_code"]
-        self.pt = f"{self.coordinates[0]},{self.coordinates[1]},pm2dgl"
+        if response1.status_code == 200 and len(response["response"]["GeoObjectCollection"]["featureMember"]) > 0:
+            self.coordinates = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["Point"][
+                "pos"].split()
+            self.info1 = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["name"]
+            try:
+                self.info2 = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["metaDataProperty"]["GeocoderMetaData"]["Address"]["postal_code"]
+            except KeyError:
+                self.info2 = ""
+            self.pt = f"{self.coordinates[0]},{self.coordinates[1]},pm2dgl"
+        else:
+            self.coordinates = ["0", "0"]
+            self.info1 = "Ошибка адреса"
+            self.info2 = ""
+            self.pt = None
 
         self.info_label.setText(self.info1)
 
@@ -156,6 +163,11 @@ class YandexMap(QMainWindow):
         self.info1 = ""
         self.info2 = ""
         self.info_label.setText(self.info1)
+        self.get_response()
+        self.image()
+
+    def find(self):
+        self.get_coordinates(self.find_line.text())
         self.get_response()
         self.image()
 
