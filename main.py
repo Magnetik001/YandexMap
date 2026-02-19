@@ -25,36 +25,37 @@ class YandexMap(QMainWindow):
         if not ok:
             sys.exit()
 
-        self.coordinates = self.get_coordinates(address)
-        self.zoom = 0.002
-        self.theme = "light"
-        self.get_response()
-
         central_widget = QWidget(self)
         self.setCentralWidget(central_widget)
         self.layout = QVBoxLayout()
         central_widget.setLayout(self.layout)
 
-        self.image_label = QLabel()
-        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.find_line = QLineEdit()
+        self.layout.addWidget(self.find_line)
 
-        self.find_label = QLineEdit()
-        self.layout.addWidget(self.find_label)
+        self.info_label = QLabel()
+        self.layout.addWidget(self.info_label)
 
         self.reset_button = QPushButton("Сброс")
         self.reset_button.clicked.connect(self.reset)
         self.layout.addWidget(self.reset_button)
 
-        self.image()
+        self.image_label = QLabel()
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.layout.addWidget(self.image_label)
 
+        self.get_coordinates(address)
+        self.zoom = 0.002
+        self.theme = "light"
+        self.get_response()
+
+        self.image()
 
     def image(self):
         pixmap = QPixmap(MAP_FILE)
         self.resize(pixmap.width(), pixmap.height())
         self.image_label.setPixmap(pixmap)
-
-        self.layout.addWidget(self.image_label)
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key.Key_PageUp:
@@ -102,7 +103,7 @@ class YandexMap(QMainWindow):
             self.get_response()
             self.image()
         elif e.key() == Qt.Key.Key_Return:
-            self.coordinates = self.get_coordinates(self.find_label.text())
+            self.get_coordinates(self.find_line.text())
             self.get_response()
             self.image()
 
@@ -133,15 +134,17 @@ class YandexMap(QMainWindow):
 
         response = requests.request("GET", server_address_geocode, params=params_geocode).json()
 
-        coordinates = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["Point"][
+        self.coordinates = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["Point"][
             "pos"].split()
+        self.info = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["name"]
+        self.pt = f"{self.coordinates[0]},{self.coordinates[1]},pm2dgl"
 
-        self.pt = f"{coordinates[0]},{coordinates[1]},pm2dgl"
-
-        return coordinates
+        self.info_label.setText(self.info)
 
     def reset(self):
         self.pt = None
+        self.info = ""
+        self.info_label.setText(self.info)
         self.get_response()
         self.image()
 
