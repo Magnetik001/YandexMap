@@ -1,7 +1,8 @@
 import os
 import sys
 import requests
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QVBoxLayout, QWidget, QLineEdit
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QVBoxLayout, QWidget, QLineEdit, \
+    QPushButton
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 
@@ -40,6 +41,10 @@ class YandexMap(QMainWindow):
 
         self.find_label = QLineEdit()
         self.layout.addWidget(self.find_label)
+
+        self.reset_button = QPushButton("Сброс")
+        self.reset_button.clicked.connect(self.reset)
+        self.layout.addWidget(self.reset_button)
 
         self.image()
 
@@ -134,6 +139,11 @@ class YandexMap(QMainWindow):
         self.pt = f"{coordinates[0]},{coordinates[1]},pm2dgl"
 
         return coordinates
+
+    def reset(self):
+        self.pt = None
+        self.get_response()
+        self.image()
 
 
 def main():
