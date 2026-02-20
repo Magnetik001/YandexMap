@@ -12,9 +12,6 @@ WINDOW_HEIGHT = 550
 WINDOW_TITLE = "MAP"
 MAP_FILE = "map.png"
 
-server_address_geocode = 'https://geocode-maps.yandex.ru/1.x/?'
-api_key_geocode = '8013b162-6b42-4997-9691-77b7074026e0'
-
 app = QApplication(sys.argv)
 
 class YandexMap(QMainWindow):
@@ -169,6 +166,48 @@ class YandexMap(QMainWindow):
                 self.get_coordinates(click_address, 2)
                 self.get_response()
                 self.image()
+        elif event.button() == Qt.MouseButton.RightButton:
+                search_api_server = "https://search-maps.yandex.ru/v1/"
+                search_api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
+
+                current_lon = float(self.coordinates[0])
+                current_lat = float(self.coordinates[1])
+
+                delta_lat = 100 / 111111
+                delta_lon = 100 / (111111 * math.cos(math.radians(current_lat)))
+
+                search_params = {
+                    "apikey": search_api_key,
+                    "text": self.find_line.text(),
+                    "lang": "ru_RU",
+                    "ll": f"{current_lon},{current_lat}",
+                    "spn": f"{delta_lon},{delta_lat}",
+                    "type": "biz",
+                    "rspn": "1",
+                    "results": "1"
+                }
+
+                response = requests.get(search_api_server, params=search_params)
+                response_json = response.json()
+
+                if len(response_json["features"]) > 0:
+                    organization = response_json["features"][0]
+                    point = organization["geometry"]["coordinates"]
+                    org_name = organization["properties"]["CompanyMetaData"]["name"]
+                    org_address = organization["properties"]["CompanyMetaData"]["address"]
+
+                    self.coordinates = [str(point[0]), str(point[1])]
+
+                    self.info1 = org_name
+                    self.info2 = org_address
+                    self.info_label.setText(f"{self.info1}")
+
+                    self.pt = f"{self.coordinates[0]},{self.coordinates[1]},pm2dgl"
+
+                    self.get_response()
+                    self.image()
+                else:
+                    print("В радиусе 50 метров ничего не найдено")
 
     def get_response(self):
         server_address_static_map = 'https://static-maps.yandex.ru/v1?'
@@ -192,6 +231,9 @@ class YandexMap(QMainWindow):
             print("Ошибка получения карты:", response.status_code)
 
     def get_coordinates(self, address, mode=1):
+        server_address_geocode = 'https://geocode-maps.yandex.ru/1.x/?'
+        api_key_geocode = '8013b162-6b42-4997-9691-77b7074026e0'
+
         params_geocode = {
             "apikey": api_key_geocode,
             "geocode": address,
